@@ -1,0 +1,12 @@
+*.csv
+*.json
+*.jsonl
+*.txt
+data-summaries/
+wikiextractor/
+data/
+*.tar.gz
+*.out
+*.npz
+__pycache__/
+*.slurm
