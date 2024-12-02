@@ -61,8 +61,16 @@ def main():
 
     client = OpenAI()
 
-    # Read the CSV file
+    # Read both the input CSV and previously transformed data
     df = pd.read_csv('movie_data_combined.csv')
+    try:
+        df_previous = pd.read_csv('movie_data_transformed_500_plots.csv')
+        # Create a set of previously transformed movie_ids for faster lookup
+        transformed_ids = set(df_previous['movie_id'].values)
+        print(f"Found {len(transformed_ids)} previously transformed plots to skip")
+    except FileNotFoundError:
+        transformed_ids = set()
+        print("No previously transformed plots found")
     
     # Create new column for transformed plots
     df['transformed_plot'] = ''
@@ -79,6 +87,13 @@ def main():
     
     while (args.num_plots is None or processed_count < args.num_plots) and idx < total_rows:
         row = df.iloc[idx]
+        
+        # Skip if this movie was already transformed
+        if row['movie_id'] in transformed_ids:
+            print(f"\nSkipping movie {idx + 1} - already transformed")
+            idx += 1
+            continue
+            
         if pd.isna(row['plot']) or not str(row['plot']).strip():
             print(f"\nSkipping movie {idx + 1} - empty plot")
             idx += 1
@@ -93,20 +108,22 @@ def main():
         processed_count += 1
         idx += 1
         pbar.update(1)
-        # Sleep to avoid rate limits
-        time.sleep(1)
     
     pbar.close()
     
     # Filter the DataFrame to keep only rows with non-empty transformed plots
     df_transformed = df[df['transformed_plot'].str.strip() != '']
     
+    # Combine with previous transformations if they exist
+    if len(transformed_ids) > 0:
+        df_transformed = pd.concat([df_previous, df_transformed], ignore_index=True)
+    
     # Save the filtered DataFrame
     output_filename = f'movie_data_transformed_{len(df_transformed)}_plots.csv'
     df_transformed.to_csv(output_filename, index=False)
     print(f"\nTransformation complete! Results saved to {output_filename}")
-    print(f"Processed {processed_count} non-empty plots")
-    print(f"Saved {len(df_transformed)} successfully transformed plots")
+    print(f"Processed {processed_count} new plots")
+    print(f"Total plots in output file: {len(df_transformed)}")
 
 if __name__ == "__main__":
     main() 
