@@ -10,3 +10,4 @@ data/
 *.npz
 __pycache__/
 *.slurm
+*.npy
